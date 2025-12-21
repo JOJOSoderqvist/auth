@@ -1,24 +1,48 @@
-mod delivery_http;
+mod app;
+mod config;
 mod delivery_grpc;
+mod delivery_http;
+mod errors;
+mod handlers;
+mod infra;
+mod model;
 mod repo;
 mod usecase;
-mod config;
-mod model;
-mod infra;
-mod errors;
 
-use axum::{
-    routing::get,
-    Router,
-};
-use crate::delivery_http::register;
+use crate::app::AuthApp;
+use crate::delivery_http::users_delivery::UsersDelivery;
+use crate::handlers::create_user;
+use crate::infra::postgres::PGPool;
+use crate::repo::users_repo::UserRepo;
+use axum::{Router, routing::post};
+use dotenvy::dotenv;
+use std::sync::Arc;
+use std::{env, process};
 
 #[tokio::main]
 async fn main() {
-    // build our application with a single route
-    let app = Router::new().route("/register", get(register));
+    dotenv().ok();
 
-    // run our app with hyper, listening globally on port 3000
+    let conn_string = env::var("DATABASE_URL").expect("Failed to get db url");
+
+    let pool = match PGPool::new(conn_string).await {
+        Ok(pool) => pool,
+        Err(e) => {
+            eprintln!("error getting pg pool: {e}");
+            process::exit(1)
+        }
+    };
+
+    let repo = UserRepo::new(pool);
+
+    let delivery = UsersDelivery::new(Arc::new(repo));
+
+    let app = Arc::new(AuthApp::new(Arc::new(delivery)).await);
+
+    let app = Router::new()
+        .route("/register", post(create_user))
+        .with_state(app);
+
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     axum::serve(listener, app).await.unwrap();
 }

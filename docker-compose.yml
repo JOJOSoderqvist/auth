@@ -1,0 +1,30 @@
+services:
+  users_db:
+    image: postgres:17.5
+    ports:
+      - "5435:5432"
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_USER=${USER_DB_USER}
+      - POSTGRES_PASSWORD=${USER_DB_PASSWORD}
+      - POSTGRES_DB=${USER_DB_NAME}
+    volumes:
+      - users_data:/var/lib/postgresql/data/
+    container_name: users_db
+    restart: unless-stopped
+    networks:
+      - auth-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${USER_DB_USER} -d ${USER_DB_NAME}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+
+networks:
+  auth-network:
+    driver: bridge
+
+volumes:
+  users_data:

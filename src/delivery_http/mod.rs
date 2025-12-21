@@ -1,2 +1,2 @@
-mod dto;
-mod register;
+pub mod dto;
+pub mod users_delivery;
