@@ -11,9 +11,10 @@ mod usecase;
 
 use crate::app::AuthApp;
 use crate::delivery_http::users_delivery::UsersDelivery;
-use crate::handlers::create_user;
+use crate::handlers::{create_user, delete_user, get_user, update_user};
 use crate::infra::postgres::PGPool;
 use crate::repo::users_repo::UserRepo;
+use axum::routing::{delete, get, put};
 use axum::{Router, routing::post};
 use dotenvy::dotenv;
 use std::sync::Arc;
@@ -40,7 +41,10 @@ async fn main() {
     let app = Arc::new(AuthApp::new(Arc::new(delivery)).await);
 
     let app = Router::new()
-        .route("/register", post(create_user))
+        .route("/api/v1/register", post(create_user))
+        .route("/api/v1/users/{id}", get(get_user))
+        .route("/api/v1/users/{id}", put(update_user))
+        .route("/api/v1/users/{id}", delete(delete_user))
         .with_state(app);
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();

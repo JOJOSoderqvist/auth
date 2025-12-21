@@ -5,7 +5,7 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 pub enum ApiError {
     #[error("DB error {0}")]
-    DataBaseError(#[source] DBError),
+    DataBaseError(#[from] DBError),
 }
 
 #[derive(Error, Debug)]
@@ -23,10 +23,19 @@ pub enum DBInfraError {
 #[derive(Error, Debug)]
 pub enum DBError {
     #[error("DB infra error {0}")]
-    InfraError(#[source] DBInfraError),
+    InfraError(#[from] DBInfraError),
 
     #[error("Failed to create user {0}")]
     FailedToCreateUser(#[source] sqlx::Error),
+
+    #[error("Failed to get user {0}")]
+    FailedToGetUser(#[source] sqlx::Error),
+
+    #[error("Failed to update user {0}")]
+    FailedToUpdateUser(#[source] sqlx::Error),
+
+    #[error("Failed to delete user {0}")]
+    FailedToDeleteUser(#[source] sqlx::Error),
 }
 
 impl IntoResponse for ApiError {
