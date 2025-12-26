@@ -17,3 +17,4 @@ async-trait = "0.1.89"
 log = "0.4.29"
 dotenvy = "0.15.7"
 argon2 = { version = "0.5.3", features = ["std"] }
+deadpool-redis = "0.22.0"

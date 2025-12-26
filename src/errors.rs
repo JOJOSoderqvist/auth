@@ -21,6 +21,9 @@ pub enum DBInfraError {
 
     #[error("Failed to acquire pg pool {0}")]
     FailedToAcquirePG(#[source] sqlx::Error),
+
+    #[error("Failed to init redis pool {0}")]
+    FailedToInitRedisPool(#[from] deadpool_redis::CreatePoolError),
 }
 
 #[derive(Error, Debug)]
@@ -48,6 +51,9 @@ pub enum DBError {
 
     #[error("Failed to delete user {0}")]
     FailedToDeleteUser(#[source] sqlx::Error),
+
+    #[error("Failed to get redis pool connection {0}")]
+    FailedToGetRedisPoolConn(#[from] deadpool_redis::PoolError),
 }
 
 impl IntoResponse for ApiError {
