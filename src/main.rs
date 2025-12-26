@@ -10,10 +10,11 @@ mod repo;
 mod usecase;
 
 use crate::app::AuthApp;
-use crate::delivery_http::users_delivery::UsersDelivery;
+use crate::delivery_http::users_delivery::{IUsersRepo, UsersDelivery};
 use crate::handlers::{create_user, delete_user, get_user, update_user};
 use crate::infra::postgres::PGPool;
 use crate::repo::users_repo::UserRepo;
+use crate::usecase::users_usecase::{IUsersCreatorRepo, UserUsecase};
 use axum::routing::{delete, get, put};
 use axum::{Router, routing::post};
 use dotenvy::dotenv;
@@ -34,9 +35,14 @@ async fn main() {
         }
     };
 
-    let repo = UserRepo::new(pool);
+    let repo = Arc::new(UserRepo::new(pool));
 
-    let delivery = UsersDelivery::new(Arc::new(repo));
+    let repo_for_usecase: Arc<dyn IUsersCreatorRepo> = repo.clone();
+    let repo_for_delivery: Arc<dyn IUsersRepo> = repo.clone();
+
+    let usecase = UserUsecase::new(repo_for_usecase);
+
+    let delivery = UsersDelivery::new(repo_for_delivery, Arc::new(usecase));
 
     let app = Arc::new(AuthApp::new(Arc::new(delivery)).await);
 

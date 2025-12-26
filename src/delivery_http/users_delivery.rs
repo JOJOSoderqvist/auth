@@ -2,8 +2,8 @@ use crate::app::IUsersDelivery;
 use crate::delivery_http::dto::{
     RegisterRequest, UpdateUserRequest, UserNotFoundResponse, UserResponse,
 };
-use crate::errors::ApiError::DataBaseError;
-use crate::errors::{ApiError, DBError};
+use crate::errors::ApiError::UseCaseError;
+use crate::errors::{ApiError, DBError, UsecaseError};
 use crate::model::User;
 use async_trait::async_trait;
 use axum::Json;
@@ -15,19 +15,24 @@ use uuid::Uuid;
 
 #[async_trait]
 pub trait IUsersRepo: Send + Sync {
-    async fn create_user(&self, user: User) -> Result<User, DBError>;
     async fn update_user(&self, user: User) -> Result<Option<User>, DBError>;
     async fn get_user(&self, user_id: Uuid) -> Result<Option<User>, DBError>;
     async fn delete_user(&self, user_id: Uuid) -> Result<bool, DBError>;
 }
 
+#[async_trait]
+pub trait IUsersCreatorUsecase: Send + Sync {
+    async fn create_user(&self, user_payload: RegisterRequest) -> Result<User, UsecaseError>;
+}
+
 pub struct UsersDelivery {
     repo: Arc<dyn IUsersRepo>,
+    usecase: Arc<dyn IUsersCreatorUsecase>,
 }
 
 impl UsersDelivery {
-    pub fn new(repo: Arc<dyn IUsersRepo>) -> Self {
-        UsersDelivery { repo }
+    pub fn new(repo: Arc<dyn IUsersRepo>, usecase: Arc<dyn IUsersCreatorUsecase>) -> Self {
+        UsersDelivery { repo, usecase }
     }
 
     fn respond_with_user(user: Option<User>) -> Result<Response, ApiError> {
@@ -49,20 +54,11 @@ impl IUsersDelivery for UsersDelivery {
         &self,
         Json(payload): Json<RegisterRequest>,
     ) -> Result<Response, ApiError> {
-        let mock_user = User {
-            id: Uuid::new_v4(),
-            email: payload.email,
-            username: payload.username,
-            password_hash: payload.password,
-            created_at: Default::default(),
-            updated_at: Default::default(),
-        };
-
         let user = self
-            .repo
-            .create_user(mock_user)
+            .usecase
+            .create_user(payload)
             .await
-            .map_err(DataBaseError)?;
+            .map_err(UseCaseError)?;
 
         Ok((StatusCode::CREATED, Json::<UserResponse>(user.into())).into_response())
     }
