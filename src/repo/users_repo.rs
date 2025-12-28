@@ -9,18 +9,18 @@ use crate::usecase::users_usecase::IUsersCreatorRepo;
 use async_trait::async_trait;
 use uuid::Uuid;
 
-pub struct UserRepo {
+pub struct UsersRepo {
     pub repo: PGPool,
 }
 
-impl UserRepo {
+impl UsersRepo {
     pub fn new(pool: PGPool) -> Self {
-        UserRepo { repo: pool }
+        UsersRepo { repo: pool }
     }
 }
 
 #[async_trait]
-impl IUsersRepo for UserRepo {
+impl IUsersRepo for UsersRepo {
     async fn update_user(&self, user: User) -> Result<Option<User>, DBError> {
         let user = sqlx::query_as!(
             User,
@@ -62,7 +62,7 @@ impl IUsersRepo for UserRepo {
 }
 
 #[async_trait]
-impl IUsersCreatorRepo for UserRepo {
+impl IUsersCreatorRepo for UsersRepo {
     async fn create_user(&self, user: User) -> Result<User, DBError> {
         let user = sqlx::query_as!(
             User,

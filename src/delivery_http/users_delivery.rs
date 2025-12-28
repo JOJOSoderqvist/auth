@@ -10,6 +10,9 @@ use axum::Json;
 use axum::extract::Path;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
+
+use axum_extra::extract::cookie::{Cookie, CookieJar};
+
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -25,14 +28,28 @@ pub trait IUsersCreatorUsecase: Send + Sync {
     async fn create_user(&self, user_payload: RegisterRequest) -> Result<User, UsecaseError>;
 }
 
+#[async_trait]
+pub trait ISessionStore: Send + Sync {
+    async fn create_session(&self, user_id: Uuid) -> Result<Uuid, DBError>;
+}
+
 pub struct UsersDelivery {
     repo: Arc<dyn IUsersRepo>,
     usecase: Arc<dyn IUsersCreatorUsecase>,
+    session_store: Arc<dyn ISessionStore>,
 }
 
 impl UsersDelivery {
-    pub fn new(repo: Arc<dyn IUsersRepo>, usecase: Arc<dyn IUsersCreatorUsecase>) -> Self {
-        UsersDelivery { repo, usecase }
+    pub fn new(
+        repo: Arc<dyn IUsersRepo>,
+        usecase: Arc<dyn IUsersCreatorUsecase>,
+        session_store: Arc<dyn ISessionStore>,
+    ) -> Self {
+        UsersDelivery {
+            repo,
+            usecase,
+            session_store,
+        }
     }
 
     fn respond_with_user(user: Option<User>) -> Result<Response, ApiError> {
@@ -46,12 +63,21 @@ impl UsersDelivery {
                 .into_response())
         }
     }
+
+    fn create_auth_cookie(session_id: Uuid) -> Cookie<'static> {
+        Cookie::build(("session_id", session_id.to_string()))
+            .path("/")
+            .http_only(true)
+            .secure(false) // TODO: change to true in prod
+            .build()
+    }
 }
 
 #[async_trait]
 impl IUsersDelivery for UsersDelivery {
     async fn create_user(
         &self,
+        jar: CookieJar,
         Json(payload): Json<RegisterRequest>,
     ) -> Result<Response, ApiError> {
         let user = self
@@ -60,7 +86,16 @@ impl IUsersDelivery for UsersDelivery {
             .await
             .map_err(UseCaseError)?;
 
-        Ok((StatusCode::CREATED, Json::<UserResponse>(user.into())).into_response())
+        let session_id = self.session_store.create_session(user.id).await?;
+
+        let cookie = Self::create_auth_cookie(session_id);
+
+        Ok((
+            StatusCode::CREATED,
+            jar.add(cookie),
+            Json::<UserResponse>(user.into()),
+        )
+            .into_response())
     }
 
     async fn get_user(&self, Path(payload): Path<Uuid>) -> Result<Response, ApiError> {

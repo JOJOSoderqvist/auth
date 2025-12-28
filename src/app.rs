@@ -4,12 +4,17 @@ use async_trait::async_trait;
 use axum::Json;
 use axum::extract::Path;
 use axum::response::Response;
+use axum_extra::extract::CookieJar;
 use std::sync::Arc;
 use uuid::Uuid;
 
 #[async_trait]
 pub trait IUsersDelivery: Send + Sync {
-    async fn create_user(&self, payload: Json<RegisterRequest>) -> Result<Response, ApiError>;
+    async fn create_user(
+        &self,
+        jar: CookieJar,
+        payload: Json<RegisterRequest>,
+    ) -> Result<Response, ApiError>;
     async fn get_user(&self, payload: Path<Uuid>) -> Result<Response, ApiError>;
     async fn update_user(
         &self,

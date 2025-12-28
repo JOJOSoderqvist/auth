@@ -54,6 +54,9 @@ pub enum DBError {
 
     #[error("Failed to get redis pool connection {0}")]
     FailedToGetRedisPoolConn(#[from] deadpool_redis::PoolError),
+
+    #[error("Failed to create session {0}")]
+    FailedToCreateSession(#[source] deadpool_redis::redis::RedisError),
 }
 
 impl IntoResponse for ApiError {

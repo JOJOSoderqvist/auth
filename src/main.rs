@@ -13,7 +13,9 @@ use crate::app::AuthApp;
 use crate::delivery_http::users_delivery::{IUsersRepo, UsersDelivery};
 use crate::handlers::{create_user, delete_user, get_user, update_user};
 use crate::infra::postgres::PGPool;
-use crate::repo::users_repo::UserRepo;
+use crate::infra::redis::RedisPool;
+use crate::repo::sessions::SessionsRepo;
+use crate::repo::users_repo::UsersRepo;
 use crate::usecase::users_usecase::{IUsersCreatorRepo, UserUsecase};
 use axum::routing::{delete, get, put};
 use axum::{Router, routing::post};
@@ -35,14 +37,26 @@ async fn main() {
         }
     };
 
-    let repo = Arc::new(UserRepo::new(pool));
+    let conn_string = env::var("REDIS_URL").expect("Failed to get redis url");
+
+    let redis_pool = match RedisPool::new(conn_string) {
+        Ok(pool) => pool,
+        Err(e) => {
+            eprintln!("error getting redis pool {e}");
+            process::exit(1);
+        }
+    };
+
+    let session_repo = Arc::new(SessionsRepo::new(redis_pool));
+
+    let repo = Arc::new(UsersRepo::new(pool));
 
     let repo_for_usecase: Arc<dyn IUsersCreatorRepo> = repo.clone();
     let repo_for_delivery: Arc<dyn IUsersRepo> = repo.clone();
 
     let usecase = UserUsecase::new(repo_for_usecase);
 
-    let delivery = UsersDelivery::new(repo_for_delivery, Arc::new(usecase));
+    let delivery = UsersDelivery::new(repo_for_delivery, Arc::new(usecase), session_repo);
 
     let app = Arc::new(AuthApp::new(Arc::new(delivery)).await);
 

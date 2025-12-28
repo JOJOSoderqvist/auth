@@ -4,14 +4,16 @@ use crate::errors::ApiError;
 use axum::Json;
 use axum::extract::{Path, State};
 use axum::response::IntoResponse;
+use axum_extra::extract::CookieJar;
 use std::sync::Arc;
 use uuid::Uuid;
 
 pub async fn create_user(
     State(app): State<Arc<AuthApp>>,
+    jar: CookieJar,
     payload: Json<RegisterRequest>,
 ) -> Result<impl IntoResponse, ApiError> {
-    app.delivery.create_user(payload).await
+    app.delivery.create_user(jar, payload).await
 }
 
 pub async fn update_user(
