@@ -1,4 +1,3 @@
-use crate::errors::DBError::FailedToGetRedisPoolConn;
 use crate::errors::{DBError, DBInfraError};
 use deadpool_redis::{Config, Connection, Pool, Runtime};
 
