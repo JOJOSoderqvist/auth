@@ -1,4 +1,5 @@
-use crate::errors::DBError::FailedToCreateSession;
+use std::str::FromStr;
+use crate::errors::DBError::{FailedToCreateSession, FailedToDeleteSession, FailedToGetUser, FailedToGetUserFromSession, FailedToParseUUID, SessionNotFound, SessionUserNotFound};
 use async_trait::async_trait;
 use deadpool_redis::redis::AsyncTypedCommands;
 use uuid::Uuid;
@@ -34,5 +35,35 @@ impl ISessionStore for SessionsRepo {
         .map_err(FailedToCreateSession)?;
 
         Ok(session_id)
+    }
+
+    async fn get_user(&self, session_id: Uuid) -> Result<Uuid, DBError> {
+        let mut conn = self.repo.get_conn().await?;
+
+        let user_id = conn.get(
+            session_id.to_string(),
+        )
+            .await
+            .map_err(FailedToGetUserFromSession)?;
+
+        user_id
+            .ok_or(SessionUserNotFound)
+            .and_then(|id| Ok(Uuid::from_str(id.as_str()).map_err(FailedToParseUUID)?))
+    }
+
+    async fn remove_session(&self, session_id: Uuid) -> Result<(), DBError> {
+        let mut conn = self.repo.get_conn().await?;
+
+        let rows_deleted = conn.del(
+            session_id.to_string(),
+        )
+            .await
+            .map_err(FailedToDeleteSession)?;
+
+        if rows_deleted == 0 {
+            return Err(SessionNotFound);
+        }
+
+        Ok(())
     }
 }

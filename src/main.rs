@@ -11,12 +11,12 @@ mod usecase;
 
 use crate::app::AuthApp;
 use crate::delivery_http::users_delivery::{IUsersRepo, UsersDelivery};
-use crate::handlers::{create_user, delete_user, get_user, update_user};
+use crate::handlers::{create_user, delete_user, get_user, login, logout, update_user};
 use crate::infra::postgres::PGPool;
 use crate::infra::redis::RedisPool;
 use crate::repo::sessions::SessionsRepo;
 use crate::repo::users_repo::UsersRepo;
-use crate::usecase::users_usecase::{IUsersCreatorRepo, UserUsecase};
+use crate::usecase::users_usecase::{IUsersRepository, UserUsecase};
 use axum::routing::{delete, get, put};
 use axum::{Router, routing::post};
 use dotenvy::dotenv;
@@ -51,7 +51,7 @@ async fn main() {
 
     let repo = Arc::new(UsersRepo::new(pool));
 
-    let repo_for_usecase: Arc<dyn IUsersCreatorRepo> = repo.clone();
+    let repo_for_usecase: Arc<dyn IUsersRepository> = repo.clone();
     let repo_for_delivery: Arc<dyn IUsersRepo> = repo.clone();
 
     let usecase = UserUsecase::new(repo_for_usecase);
@@ -65,6 +65,8 @@ async fn main() {
         .route("/api/v1/users/{id}", get(get_user))
         .route("/api/v1/users/{id}", put(update_user))
         .route("/api/v1/users/{id}", delete(delete_user))
+        .route("/api/v1/login", post(login))
+        .route("/api/v1/logout", post(logout))
         .with_state(app);
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();

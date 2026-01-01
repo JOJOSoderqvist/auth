@@ -5,7 +5,7 @@ use crate::errors::DBError::{
 };
 use crate::infra::postgres::PGPool;
 use crate::model::User;
-use crate::usecase::users_usecase::IUsersCreatorRepo;
+use crate::usecase::users_usecase::IUsersRepository;
 use async_trait::async_trait;
 use uuid::Uuid;
 
@@ -62,7 +62,7 @@ impl IUsersRepo for UsersRepo {
 }
 
 #[async_trait]
-impl IUsersCreatorRepo for UsersRepo {
+impl IUsersRepository for UsersRepo {
     async fn create_user(&self, user: User) -> Result<User, DBError> {
         let user = sqlx::query_as!(
             User,
@@ -77,6 +77,21 @@ impl IUsersCreatorRepo for UsersRepo {
         .fetch_one(&self.repo.pool)
         .await
         .map_err(FailedToCreateUser)?;
+
+        Ok(user)
+    }
+    
+    async fn login(&self, email: String) -> Result<Option<User>, DBError> {
+        let user = sqlx::query_as!(
+            User,
+            r"select id, email, username, password_hash, created_at, updated_at
+            from users
+            where email = $1;",
+            email,
+        )
+            .fetch_optional(&self.repo.pool)
+            .await
+            .map_err(FailedToGetUser)?;
 
         Ok(user)
     }

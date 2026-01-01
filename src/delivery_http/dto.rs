@@ -12,6 +12,12 @@ pub struct RegisterRequest {
 }
 
 #[derive(Clone, Deserialize)]
+pub struct LoginRequest {
+    pub email: String,
+    pub password: String,
+}
+
+#[derive(Clone, Deserialize)]
 pub struct UpdateUserRequest {
     pub new_username: String,
 }

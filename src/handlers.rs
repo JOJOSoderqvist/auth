@@ -1,5 +1,5 @@
 use crate::app::AuthApp;
-use crate::delivery_http::dto::{RegisterRequest, UpdateUserRequest};
+use crate::delivery_http::dto::{LoginRequest, RegisterRequest, UpdateUserRequest};
 use crate::errors::ApiError;
 use axum::Json;
 use axum::extract::{Path, State};
@@ -36,4 +36,19 @@ pub async fn get_user(
     payload: Path<Uuid>,
 ) -> Result<impl IntoResponse, ApiError> {
     app.delivery.get_user(payload).await
+}
+
+pub async fn login(
+    State(app): State<Arc<AuthApp>>,
+    jar: CookieJar,
+    payload: Json<LoginRequest>,
+) -> Result<impl IntoResponse, ApiError>{
+    app.delivery.login(jar, payload).await
+}
+
+pub async fn logout(
+    State(app): State<Arc<AuthApp>>,
+    jar: CookieJar,
+)-> Result<impl IntoResponse, ApiError> {
+    app.delivery.logout(jar).await
 }

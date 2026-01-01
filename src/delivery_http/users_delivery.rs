@@ -1,7 +1,5 @@
 use crate::app::IUsersDelivery;
-use crate::delivery_http::dto::{
-    RegisterRequest, UpdateUserRequest, UserNotFoundResponse, UserResponse,
-};
+use crate::delivery_http::dto::{LoginRequest, RegisterRequest, UpdateUserRequest, UserNotFoundResponse, UserResponse};
 use crate::errors::ApiError::UseCaseError;
 use crate::errors::{ApiError, DBError, UsecaseError};
 use crate::model::User;
@@ -15,6 +13,7 @@ use axum_extra::extract::cookie::{Cookie, CookieJar};
 
 use std::sync::Arc;
 use uuid::Uuid;
+use crate::errors::DBError::FailedToParseUUID;
 
 #[async_trait]
 pub trait IUsersRepo: Send + Sync {
@@ -26,11 +25,15 @@ pub trait IUsersRepo: Send + Sync {
 #[async_trait]
 pub trait IUsersCreatorUsecase: Send + Sync {
     async fn create_user(&self, user_payload: RegisterRequest) -> Result<User, UsecaseError>;
+    async fn login(&self, login_payload: LoginRequest) -> Result<User, UsecaseError>;
 }
 
 #[async_trait]
 pub trait ISessionStore: Send + Sync {
     async fn create_session(&self, user_id: Uuid) -> Result<Uuid, DBError>;
+    async fn get_user(&self, session_id: Uuid) -> Result<Uuid, DBError>;
+
+    async fn remove_session(&self, session_id: Uuid) -> Result<(), DBError>;
 }
 
 pub struct UsersDelivery {
@@ -126,5 +129,40 @@ impl IUsersDelivery for UsersDelivery {
             )
                 .into_response())
         }
+    }
+
+    async fn login(&self, jar: CookieJar, Json(payload): Json<LoginRequest>) -> Result<Response, ApiError> {
+        let user = self.usecase.login(payload).await?;
+
+        let session_id = self.session_store.create_session(user.id).await?;
+
+        let cookie = Self::create_auth_cookie(session_id);
+
+        Ok((
+            StatusCode::CREATED,
+            jar.add(cookie),
+            Json::<UserResponse>(user.into()),
+        )
+            .into_response())
+    }
+
+    async fn logout(&self, jar: CookieJar) -> Result<Response, ApiError> {
+        if let Some(cookie) = jar.get("session_id") {
+            let session_id = cookie.value().to_string();
+
+            let session_id = Uuid::parse_str(session_id.as_str()).map_err(FailedToParseUUID)?;
+
+            self.session_store.remove_session(session_id).await?;
+        }
+
+        let removal_cookie = Cookie::build("session_id")
+            .path("/")
+            .build();
+        Ok(
+            (
+                StatusCode::OK,
+                jar.remove(removal_cookie)
+            ).into_response()
+        )
     }
 }

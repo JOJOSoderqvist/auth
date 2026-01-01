@@ -1,4 +1,4 @@
-use crate::delivery_http::dto::{RegisterRequest, UpdateUserRequest};
+use crate::delivery_http::dto::{LoginRequest, RegisterRequest, UpdateUserRequest};
 use crate::errors::ApiError;
 use async_trait::async_trait;
 use axum::Json;
@@ -22,6 +22,8 @@ pub trait IUsersDelivery: Send + Sync {
         payload: Json<UpdateUserRequest>,
     ) -> Result<Response, ApiError>;
     async fn delete_user(&self, payload: Path<Uuid>) -> Result<Response, ApiError>;
+    async fn login(&self, jar: CookieJar, payload: Json<LoginRequest>) -> Result<Response, ApiError>;
+    async fn logout(&self, jar: CookieJar) -> Result<Response, ApiError>;
 }
 
 pub struct AuthApp {

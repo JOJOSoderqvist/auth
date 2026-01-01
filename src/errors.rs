@@ -30,9 +30,13 @@ pub enum DBInfraError {
 pub enum UsecaseError {
     // TODO: mb cringe
     #[error("db error {0}")]
-    DBDerivedError(#[source] DBError),
+    DBDerivedError(#[from] DBError),
     #[error("Failed to hash password {0}")]
     HashPasswordError(#[from] argon2::password_hash::Error),
+    #[error("User not found")]
+    UserNotFoundError,
+    #[error("Invalid credentials")]
+    InvalidCreds,
 }
 
 #[derive(Error, Debug)]
@@ -57,6 +61,21 @@ pub enum DBError {
 
     #[error("Failed to create session {0}")]
     FailedToCreateSession(#[source] deadpool_redis::redis::RedisError),
+
+    #[error("Failed to get user from session {0}")]
+    FailedToGetUserFromSession(#[source] deadpool_redis::redis::RedisError),
+
+    #[error("Failed to delete session {0}")]
+    FailedToDeleteSession(#[source] deadpool_redis::redis::RedisError),
+
+    #[error("Session not found")]
+    SessionNotFound,
+    
+    #[error("Session user not found")]
+    SessionUserNotFound,
+
+    #[error("Failed to parse UUID {0}")]
+    FailedToParseUUID(#[from] uuid::Error),
 }
 
 impl IntoResponse for ApiError {
