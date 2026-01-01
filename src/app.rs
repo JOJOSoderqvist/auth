@@ -22,7 +22,11 @@ pub trait IUsersDelivery: Send + Sync {
         payload: Json<UpdateUserRequest>,
     ) -> Result<Response, ApiError>;
     async fn delete_user(&self, payload: Path<Uuid>) -> Result<Response, ApiError>;
-    async fn login(&self, jar: CookieJar, payload: Json<LoginRequest>) -> Result<Response, ApiError>;
+    async fn login(
+        &self,
+        jar: CookieJar,
+        payload: Json<LoginRequest>,
+    ) -> Result<Response, ApiError>;
     async fn logout(&self, jar: CookieJar) -> Result<Response, ApiError>;
 }
 

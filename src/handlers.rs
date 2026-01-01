@@ -42,13 +42,13 @@ pub async fn login(
     State(app): State<Arc<AuthApp>>,
     jar: CookieJar,
     payload: Json<LoginRequest>,
-) -> Result<impl IntoResponse, ApiError>{
+) -> Result<impl IntoResponse, ApiError> {
     app.delivery.login(jar, payload).await
 }
 
 pub async fn logout(
     State(app): State<Arc<AuthApp>>,
     jar: CookieJar,
-)-> Result<impl IntoResponse, ApiError> {
+) -> Result<impl IntoResponse, ApiError> {
     app.delivery.logout(jar).await
 }

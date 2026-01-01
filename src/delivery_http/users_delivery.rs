@@ -1,5 +1,7 @@
 use crate::app::IUsersDelivery;
-use crate::delivery_http::dto::{LoginRequest, RegisterRequest, UpdateUserRequest, UserNotFoundResponse, UserResponse};
+use crate::delivery_http::dto::{
+    LoginRequest, RegisterRequest, UpdateUserRequest, UserNotFoundResponse, UserResponse,
+};
 use crate::errors::ApiError::UseCaseError;
 use crate::errors::{ApiError, DBError, UsecaseError};
 use crate::model::User;
@@ -11,9 +13,9 @@ use axum::response::{IntoResponse, Response};
 
 use axum_extra::extract::cookie::{Cookie, CookieJar};
 
+use crate::errors::DBError::FailedToParseUUID;
 use std::sync::Arc;
 use uuid::Uuid;
-use crate::errors::DBError::FailedToParseUUID;
 
 #[async_trait]
 pub trait IUsersRepo: Send + Sync {
@@ -131,7 +133,11 @@ impl IUsersDelivery for UsersDelivery {
         }
     }
 
-    async fn login(&self, jar: CookieJar, Json(payload): Json<LoginRequest>) -> Result<Response, ApiError> {
+    async fn login(
+        &self,
+        jar: CookieJar,
+        Json(payload): Json<LoginRequest>,
+    ) -> Result<Response, ApiError> {
         let user = self.usecase.login(payload).await?;
 
         let session_id = self.session_store.create_session(user.id).await?;
@@ -155,14 +161,7 @@ impl IUsersDelivery for UsersDelivery {
             self.session_store.remove_session(session_id).await?;
         }
 
-        let removal_cookie = Cookie::build("session_id")
-            .path("/")
-            .build();
-        Ok(
-            (
-                StatusCode::OK,
-                jar.remove(removal_cookie)
-            ).into_response()
-        )
+        let removal_cookie = Cookie::build("session_id").path("/").build();
+        Ok((StatusCode::OK, jar.remove(removal_cookie)).into_response())
     }
 }

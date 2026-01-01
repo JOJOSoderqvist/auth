@@ -80,7 +80,7 @@ impl IUsersRepository for UsersRepo {
 
         Ok(user)
     }
-    
+
     async fn login(&self, email: String) -> Result<Option<User>, DBError> {
         let user = sqlx::query_as!(
             User,
@@ -89,9 +89,9 @@ impl IUsersRepository for UsersRepo {
             where email = $1;",
             email,
         )
-            .fetch_optional(&self.repo.pool)
-            .await
-            .map_err(FailedToGetUser)?;
+        .fetch_optional(&self.repo.pool)
+        .await
+        .map_err(FailedToGetUser)?;
 
         Ok(user)
     }

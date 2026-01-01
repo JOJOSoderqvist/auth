@@ -14,7 +14,6 @@ use uuid::Uuid;
 pub trait IUsersRepository: Send + Sync {
     async fn create_user(&self, user: User) -> Result<User, DBError>;
     async fn login(&self, email: String) -> Result<Option<User>, DBError>;
-
 }
 
 pub struct UserUsecase {
@@ -47,11 +46,7 @@ impl IUsersCreatorUsecase for UserUsecase {
             updated_at: Default::default(),
         };
 
-        Ok(self
-            .repo
-            .create_user(user)
-            .await
-            .map_err(DBDerivedError)?)
+        Ok(self.repo.create_user(user).await.map_err(DBDerivedError)?)
     }
 
     async fn login(&self, login_payload: LoginRequest) -> Result<User, UsecaseError> {
@@ -69,7 +64,10 @@ impl IUsersCreatorUsecase for UserUsecase {
 
         let parsed_hash = PasswordHash::new(user.password_hash.as_str())?;
 
-        if argon2.verify_password(login_payload.password.as_bytes(), &parsed_hash).is_ok() {
+        if argon2
+            .verify_password(login_payload.password.as_bytes(), &parsed_hash)
+            .is_ok()
+        {
             Ok(user)
         } else {
             Err(InvalidCreds)

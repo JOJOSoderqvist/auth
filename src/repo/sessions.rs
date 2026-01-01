@@ -1,7 +1,10 @@
-use std::str::FromStr;
-use crate::errors::DBError::{FailedToCreateSession, FailedToDeleteSession, FailedToGetUser, FailedToGetUserFromSession, FailedToParseUUID, SessionNotFound, SessionUserNotFound};
+use crate::errors::DBError::{
+    FailedToCreateSession, FailedToDeleteSession, FailedToGetUserFromSession, FailedToParseUUID,
+    SessionNotFound, SessionUserNotFound,
+};
 use async_trait::async_trait;
 use deadpool_redis::redis::AsyncTypedCommands;
+use std::str::FromStr;
 use uuid::Uuid;
 
 const DEFAULT_EXPIRATION_TIME: u64 = 86400;
@@ -40,9 +43,8 @@ impl ISessionStore for SessionsRepo {
     async fn get_user(&self, session_id: Uuid) -> Result<Uuid, DBError> {
         let mut conn = self.repo.get_conn().await?;
 
-        let user_id = conn.get(
-            session_id.to_string(),
-        )
+        let user_id = conn
+            .get(session_id.to_string())
             .await
             .map_err(FailedToGetUserFromSession)?;
 
@@ -54,9 +56,8 @@ impl ISessionStore for SessionsRepo {
     async fn remove_session(&self, session_id: Uuid) -> Result<(), DBError> {
         let mut conn = self.repo.get_conn().await?;
 
-        let rows_deleted = conn.del(
-            session_id.to_string(),
-        )
+        let rows_deleted = conn
+            .del(session_id.to_string())
             .await
             .map_err(FailedToDeleteSession)?;
 

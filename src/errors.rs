@@ -70,7 +70,7 @@ pub enum DBError {
 
     #[error("Session not found")]
     SessionNotFound,
-    
+
     #[error("Session user not found")]
     SessionUserNotFound,
 
