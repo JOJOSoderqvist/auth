@@ -1,5 +1,7 @@
+use axum::Json;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
+use serde_json::json;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -37,6 +39,19 @@ pub enum UsecaseError {
     UserNotFoundError,
     #[error("Invalid credentials")]
     InvalidCreds,
+    #[error("Session already exists")]
+    SessionAlreadyExists,
+}
+
+impl UsecaseError {
+    fn status_code(&self) -> StatusCode {
+        match self {
+            UsecaseError::DBDerivedError(err) => err.status_code(),
+            UsecaseError::HashPasswordError(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            UsecaseError::UserNotFoundError => StatusCode::NOT_FOUND,
+            UsecaseError::InvalidCreds | UsecaseError::SessionAlreadyExists => StatusCode::CONFLICT,
+        }
+    }
 }
 
 #[derive(Error, Debug)]
@@ -78,20 +93,28 @@ pub enum DBError {
     FailedToParseUUID(#[from] uuid::Error),
 }
 
+impl DBError {
+    fn status_code(&self) -> StatusCode {
+        match self {
+            DBError::SessionNotFound => StatusCode::NOT_FOUND,
+            DBError::SessionUserNotFound => StatusCode::NOT_FOUND,
+            _ => StatusCode::INTERNAL_SERVER_ERROR,
+        }
+    }
+}
+
 impl IntoResponse for ApiError {
     fn into_response(self) -> Response {
-        match self {
-            ApiError::DataBaseError(db_error) => (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("db error happened: {db_error}"),
-            )
-                .into_response(),
+        let (code, err_body) = match self {
+            ApiError::DataBaseError(err) => (err.status_code(), err.to_string()),
 
-            ApiError::UseCaseError(usecase_error) => (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("usecase error happened: {usecase_error}"),
-            )
-                .into_response(),
-        }
+            ApiError::UseCaseError(err) => (err.status_code(), err.to_string()),
+        };
+
+        let json_body = Json(json!({
+            "error": err_body
+        }));
+
+        (code, json_body).into_response()
     }
 }

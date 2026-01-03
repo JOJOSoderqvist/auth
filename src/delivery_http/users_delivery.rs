@@ -14,6 +14,7 @@ use axum::response::{IntoResponse, Response};
 use axum_extra::extract::cookie::{Cookie, CookieJar};
 
 use crate::errors::DBError::FailedToParseUUID;
+use crate::errors::UsecaseError::SessionAlreadyExists;
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -33,7 +34,7 @@ pub trait IUsersCreatorUsecase: Send + Sync {
 #[async_trait]
 pub trait ISessionStore: Send + Sync {
     async fn create_session(&self, user_id: Uuid) -> Result<Uuid, DBError>;
-    async fn get_user(&self, session_id: Uuid) -> Result<Uuid, DBError>;
+    async fn get_user(&self, session_id: Uuid) -> Result<Option<Uuid>, DBError>;
 
     async fn remove_session(&self, session_id: Uuid) -> Result<(), DBError>;
 }
@@ -140,6 +141,10 @@ impl IUsersDelivery for UsersDelivery {
     ) -> Result<Response, ApiError> {
         let user = self.usecase.login(payload).await?;
 
+        if let Some(_) = jar.get("session_id") {
+            return Err(UseCaseError(SessionAlreadyExists));
+        }
+
         let session_id = self.session_store.create_session(user.id).await?;
 
         let cookie = Self::create_auth_cookie(session_id);
@@ -152,6 +157,7 @@ impl IUsersDelivery for UsersDelivery {
             .into_response())
     }
 
+    // TODO: check if removal of empty cookie is ok
     async fn logout(&self, jar: CookieJar) -> Result<Response, ApiError> {
         if let Some(cookie) = jar.get("session_id") {
             let session_id = cookie.value().to_string();
