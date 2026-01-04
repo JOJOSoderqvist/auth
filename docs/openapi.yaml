@@ -1,0 +1,321 @@
+openapi: 3.0.0
+info:
+  title: "Users Service"
+  description: "API для регистрации, авторизации и работе с пользователями"
+  version: "1.0.0"
+servers:
+  - url: http://localhost:8005
+tags:
+  - name: "Users"
+    description: "Операции над пользователями"
+
+# --------------------------------------------------------------
+# Компоненты API
+# --------------------------------------------------------------
+components:
+  # -------------------- Безопасность --------------------
+  #  securitySchemes:
+  #    cookieAuth:
+  #      type: apiKey
+  #      in: cookie
+  #      name: session_id
+  #    csrfAuth:
+  #      type: apiKey
+  #      in: header
+  #      name: X-CSRF-Token
+
+  # -------------------- Схемы данных --------------------
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+          description: "ID пользователя."
+          example: "5a43c0df-c74f-446c-99cb-8c467a13dd7b"
+        email:
+          type: string
+          description: "Email пользователя."
+          example: "test@email.com"
+        username:
+          type: string
+          description: "Имя пользователя."
+          example: "TestUsername"
+        createdAt:
+          type: string
+          format: date-time
+          readOnly: true
+        updatedAt:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+        - id
+        - email
+        - username
+        - createdAt
+        - updatedAt
+
+    RegisterRequest:
+      type: object
+      description: "Данные для создания нового аккаунта."
+      properties:
+        email:
+          type: string
+          description: "Email пользователя."
+          example: "test@email.com"
+        username:
+          type: string
+          description: "Имя пользователя."
+          example: "TestUsername"
+        password:
+          type: string
+          description: "Пароль пользователя."
+          example: "VeryGoodPassword123!"
+      required:
+        - email
+        - username
+        - password
+
+    LoginRequest:
+      type: object
+      description: "Запрос на вход в аккаунт."
+      properties:
+        email:
+          type: string
+          description: "Email пользователя."
+          example: "test@email.com"
+        password:
+          type: string
+          description: "Пароль пользователя."
+          example: "VeryGoodPassword123!"
+      required:
+        - email
+        - password
+
+    UpdateUsernameRequest:
+      type: object
+      description: "Обновление имени пользователя"
+      properties:
+        NewUsername:
+          type: string
+          description: "Новое имя пользователя."
+          example: "TestUsername"
+      required:
+        - NewUsername
+
+    Error:
+      type: object
+      description: "Стандартизированная структура ошибки."
+      properties:
+        errorCode:
+          type: string
+          description: "Машиночитаемый код ошибки."
+          example: "VALIDATION_ERROR"
+        message:
+          type: string
+          description: "Человекочитаемое сообщение об ошибке."
+          example: "Одно или несколько полей не прошли валидацию."
+        details:
+          type: object
+          additionalProperties:
+            type: string
+          description: "Дополнительные детали об ошибке, например, по полям."
+      required:
+        - errorCode
+        - message
+
+  # -------------------- Параметры --------------------
+  parameters:
+    UserID:
+      name: userId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  # -------------------- Ответы --------------------
+  responses:
+    NoContent:
+      description: "Операция успешна, тело ответа отсутствует."
+    BadRequest:
+      description: "Некорректный запрос (Bad Request)."
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unauthorized:
+      description: "Ошибка аутентификации (Unauthorized)."
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: "Ресурс не найден (Not Found)."
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Conflict:
+      description: "Конфликт (Conflict)."
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    InternalServerError:
+      description: "Внутренняя ошибка сервера (Internal Server Error)."
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+#security:
+#  - cookieAuth: []
+#  - csrfAuth: []
+
+paths:
+  /api/v1/users/{userId}:
+    get:
+      summary: "Получить пользователя по ID"
+      operationId: "GetUser"
+      tags: ["Users"]
+      parameters:
+        - $ref: '#/components/parameters/UserID'
+      responses:
+        '200':
+          description: "Успешный ответ с данными конкретного пользователя."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    put:
+      summary: "Обновить имя пользователя"
+      operationId: "UpdateUsername"
+      tags: ["Users"]
+      parameters:
+        - $ref: '#/components/parameters/UserID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUsernameRequest'
+      responses:
+        '204':
+          description: "Username успешно обновлен."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/responses/NoContent'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      summary: "Удалить пользователя"
+      operationId: "DeleteUser"
+      tags: [ "Users" ]
+      parameters:
+        - $ref: '#/components/parameters/UserID'
+      responses:
+        '204':
+          description: "Пользователь успешно удален."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/responses/NoContent'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+
+  /api/v1/register:
+    post:
+      summary: "Регистрация нового пользователя"
+      operationId: "Register"
+      tags: ["Users"]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '200':
+          description: "Успешный ответ с данными пользователя, а так же Auth Cookie."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+                example: "session_id=9ca2d284-a10a-4644-8250-563bd5526bf3; Path=/; HttpOnly;"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/login:
+    post:
+      summary: "Вход существующего пользователя в аккаунт"
+      operationId: "Login"
+      tags: [ "Users" ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: "Успешный ответ с данными пользователя, а так же Auth Cookie."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+                example: "session_id=9ca2d284-a10a-4644-8250-563bd5526bf3; Path=/; HttpOnly;"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/logout:
+    post:
+      summary: "Выход существующего пользователя из аккаунта."
+      operationId: "Logout"
+      tags: [ "Users" ]
+      responses:
+        '200':
+          description: "Успешный выход из аккаунта, удаление cookie."
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'

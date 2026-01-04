@@ -150,7 +150,7 @@ impl IUsersDelivery for UsersDelivery {
         let cookie = Self::create_auth_cookie(session_id);
 
         Ok((
-            StatusCode::CREATED,
+            StatusCode::OK,
             jar.add(cookie),
             Json::<UserResponse>(user.into()),
         )
