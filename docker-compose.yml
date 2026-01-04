@@ -35,6 +35,27 @@ services:
     volumes:
       - redis_data:/data
 
+  auth:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    image: auth:latest
+    container_name: auth_rs
+    env_file:
+      - .env
+    environment:
+      - RUST_LOG=info
+    networks:
+      - auth-network
+    restart: unless-stopped
+    depends_on:
+      users_db:
+        condition: service_healthy
+      session_store:
+        condition: service_started
+    ports:
+      - "3000:3000"
+
 networks:
   auth-network:
     driver: bridge

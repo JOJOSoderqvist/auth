@@ -22,13 +22,12 @@ impl UsersRepo {
 #[async_trait]
 impl IUsersRepo for UsersRepo {
     async fn update_user(&self, user: User) -> Result<Option<User>, DBError> {
-        let user = sqlx::query_as!(
-            User,
+        let user = sqlx::query_as(
             r"update users set username = $1 where id = $2
             returning id, email, username, password_hash, created_at, updated_at;",
-            user.username,
-            user.id,
         )
+        .bind(user.username)
+        .bind(user.id)
         .fetch_optional(&self.repo.pool)
         .await
         .map_err(FailedToUpdateUser)?;
@@ -37,13 +36,12 @@ impl IUsersRepo for UsersRepo {
     }
 
     async fn get_user(&self, user_id: Uuid) -> Result<Option<User>, DBError> {
-        let user = sqlx::query_as!(
-            User,
+        let user = sqlx::query_as(
             r"select id, email, username, password_hash, created_at, updated_at
             from users
             where id = $1;",
-            user_id,
         )
+        .bind(user_id)
         .fetch_optional(&self.repo.pool)
         .await
         .map_err(FailedToGetUser)?;
@@ -52,7 +50,8 @@ impl IUsersRepo for UsersRepo {
     }
 
     async fn delete_user(&self, user_id: Uuid) -> Result<bool, DBError> {
-        let res = sqlx::query!(r"delete from users where id = $1;", user_id)
+        let res = sqlx::query(r"delete from users where id = $1;")
+            .bind(user_id)
             .execute(&self.repo.pool)
             .await
             .map_err(FailedToDeleteUser)?;
@@ -64,16 +63,15 @@ impl IUsersRepo for UsersRepo {
 #[async_trait]
 impl IUsersRepository for UsersRepo {
     async fn create_user(&self, user: User) -> Result<User, DBError> {
-        let user = sqlx::query_as!(
-            User,
+        let user = sqlx::query_as(
             r#"insert into users (id, email, username, password_hash)
             values ($1, $2, $3, $4)
             returning id, email, username, password_hash, created_at, updated_at;"#,
-            user.id,
-            user.email,
-            user.username,
-            user.password_hash,
         )
+        .bind(user.id)
+        .bind(user.email)
+        .bind(user.username)
+        .bind(user.password_hash)
         .fetch_one(&self.repo.pool)
         .await
         .map_err(FailedToCreateUser)?;
@@ -82,13 +80,12 @@ impl IUsersRepository for UsersRepo {
     }
 
     async fn login(&self, email: String) -> Result<Option<User>, DBError> {
-        let user = sqlx::query_as!(
-            User,
+        let user = sqlx::query_as(
             r"select id, email, username, password_hash, created_at, updated_at
             from users
             where email = $1;",
-            email,
         )
+        .bind(email)
         .fetch_optional(&self.repo.pool)
         .await
         .map_err(FailedToGetUser)?;

@@ -1,7 +1,8 @@
 use crate::delivery_http::dto::UpdateUserRequest;
 use chrono::{DateTime, Local};
+use sqlx::FromRow;
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, FromRow)]
 pub struct User {
     pub id: uuid::Uuid,
     pub email: String,
