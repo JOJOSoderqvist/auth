@@ -17,8 +17,8 @@ use std::sync::Arc;
 async fn main() {
     let config = AppConfig::new();
 
-    let app = AuthApp::new(config.clone()).await;
-    let router = init_router(Arc::new(app));
+    let (http_app, grpc_router) = AuthApp::new(config.clone()).await;
+    let router = init_router(Arc::new(http_app));
 
-    serve(config.host, config.port, router).await;
+    serve(config.host, config.port, router, config.grpc_addr, grpc_router).await;
 }

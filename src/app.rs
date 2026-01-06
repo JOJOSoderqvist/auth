@@ -1,3 +1,4 @@
+use std::net::SocketAddr;
 use crate::config::AppConfig;
 use crate::delivery_http::dto::{LoginRequest, RegisterRequest, UpdateUserRequest};
 use crate::delivery_http::users_delivery::{IUsersRepo, UsersDelivery};
@@ -16,7 +17,11 @@ use axum::{Json, Router};
 use axum_extra::extract::CookieJar;
 use std::process;
 use std::sync::Arc;
+use tonic::transport::Server;
+use tonic::transport::server::Router as grpc_router;
 use uuid::Uuid;
+use crate::delivery_grpc::users_delivery::auth::users_provider_server::{UsersProvider, UsersProviderServer};
+use crate::delivery_grpc::users_delivery::UsersDeliveryGRPC;
 
 #[async_trait]
 pub trait IUsersDelivery: Send + Sync {
@@ -41,11 +46,11 @@ pub trait IUsersDelivery: Send + Sync {
 }
 
 pub struct AuthApp {
-    pub delivery: Arc<dyn IUsersDelivery>,
+    pub http_delivery: Arc<dyn IUsersDelivery>
 }
 
 impl AuthApp {
-    pub async fn new(config: AppConfig) -> Self {
+    pub async fn new(config: AppConfig) -> (Self, grpc_router) {
         let pool = match PGPool::new(config.postgres_conn_string).await {
             Ok(pool) => pool,
             Err(e) => {
@@ -64,6 +69,8 @@ impl AuthApp {
 
         let session_repo = Arc::new(SessionsRepo::new(redis_pool));
 
+        let sessions_for_grpc = session_repo.clone();
+
         let repo = Arc::new(UsersRepo::new(pool));
 
         let repo_for_usecase: Arc<dyn IUsersRepository> = repo.clone();
@@ -77,7 +84,12 @@ impl AuthApp {
             session_repo,
         ));
 
-        AuthApp { delivery }
+        let grpc_auth = UsersDeliveryGRPC::new(sessions_for_grpc);
+
+        let grpc_router = Server::builder()
+            .add_service(UsersProviderServer::new(grpc_auth));
+
+        (AuthApp { http_delivery: delivery}, grpc_router)
     }
 }
 
@@ -92,8 +104,16 @@ pub fn init_router(state: Arc<AuthApp>) -> Router {
         .with_state(state)
 }
 
-pub async fn serve(host: String, port: String, router: Router) {
+pub async fn serve(host: String, port: String, router: Router, grpc_addr: SocketAddr, grpc_router: grpc_router) {
     let addr = format!("{}:{}", host, port);
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
-    axum::serve(listener, router).await.unwrap();
+
+    let http_future = axum::serve(listener, router);
+    let grpc_future = grpc_router.serve(grpc_addr);
+
+    match tokio::join!(http_future, grpc_future) {
+        (Ok(_), Ok(_)) => println!("Both servers stopped gracefully"),
+        (Err(e), _) => eprintln!("gRPC server failed: {}", e),
+        (_, Err(e)) => eprintln!("HTTP server failed: {}", e),
+    }
 }

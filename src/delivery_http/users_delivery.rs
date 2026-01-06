@@ -34,8 +34,6 @@ pub trait IUsersCreatorUsecase: Send + Sync {
 #[async_trait]
 pub trait ISessionStore: Send + Sync {
     async fn create_session(&self, user_id: Uuid) -> Result<Uuid, DBError>;
-    async fn get_user(&self, session_id: Uuid) -> Result<Option<Uuid>, DBError>;
-
     async fn remove_session(&self, session_id: Uuid) -> Result<(), DBError>;
 }
 

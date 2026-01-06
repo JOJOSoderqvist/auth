@@ -12,6 +12,8 @@ use crate::{
     delivery_http::users_delivery::ISessionStore, errors::DBError, infra::redis::RedisPool,
 };
 
+use crate::delivery_grpc::users_delivery::IUserIDGetter;
+
 pub struct SessionsRepo {
     pub repo: RedisPool,
 }
@@ -39,19 +41,6 @@ impl ISessionStore for SessionsRepo {
         Ok(session_id)
     }
 
-    async fn get_user(&self, session_id: Uuid) -> Result<Option<Uuid>, DBError> {
-        let mut conn = self.repo.get_conn().await?;
-
-        let user_id = conn
-            .get(session_id.to_string())
-            .await
-            .map_err(FailedToGetUserFromSession)?;
-
-        user_id
-            .map(|id| Uuid::parse_str(id.as_str()).map_err(FailedToParseUUID))
-            .transpose()
-    }
-
     async fn remove_session(&self, session_id: Uuid) -> Result<(), DBError> {
         let mut conn = self.repo.get_conn().await?;
 
@@ -65,5 +54,21 @@ impl ISessionStore for SessionsRepo {
         }
 
         Ok(())
+    }
+}
+
+#[async_trait]
+impl IUserIDGetter for SessionsRepo {
+    async fn get_user(&self, session_id: Uuid) -> Result<Option<Uuid>, DBError> {
+        let mut conn = self.repo.get_conn().await?;
+
+        let user_id = conn
+            .get(session_id.to_string())
+            .await
+            .map_err(FailedToGetUserFromSession)?;
+
+        user_id
+            .map(|id| Uuid::parse_str(id.as_str()).map_err(FailedToParseUUID))
+            .transpose()
     }
 }

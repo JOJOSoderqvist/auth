@@ -3,6 +3,8 @@ FROM rust:latest AS builder
 
 WORKDIR /app
 
+RUN apt-get update && apt-get install -y protobuf-compiler
+
 # Copy your Rust project files
 COPY . .
 
@@ -12,12 +14,15 @@ RUN cargo build --release
 # Stage 2: Runtime
 FROM debian:stable-slim
 
+RUN apt-get update && apt-get install -y libssl-dev ca-certificates && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
 # Copy the compiled executable from the builder stage
 COPY --from=builder /app/target/release/auth .
 
 EXPOSE 3000
+EXPOSE 3001
 
 # Set the entrypoint for your application
 CMD ["./auth"]

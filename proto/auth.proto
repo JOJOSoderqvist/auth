@@ -1,0 +1,14 @@
+syntax = "proto3";
+package auth;
+
+service UsersProvider {
+  rpc GetUser (GetUserRequest) returns (GetUserResponse);
+}
+
+message GetUserRequest {
+  string session_id = 1;
+}
+
+message GetUserResponse {
+  string user_id = 1;
+}
