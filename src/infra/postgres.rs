@@ -32,11 +32,11 @@ impl PGPool {
         match pool.acquire().await {
             Ok(mut conn) => {
                 if let Err(e) = conn.ping().await {
-                    return Err(e).map_err(FailedToPingPG);
+                    return Err(FailedToPingPG(e));
                 }
             }
 
-            Err(e) => return Err(e).map_err(FailedToAcquirePG),
+            Err(e) => return Err(FailedToAcquirePG(e)),
         }
 
         Ok(())

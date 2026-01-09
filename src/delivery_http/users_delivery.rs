@@ -139,7 +139,7 @@ impl IUsersDelivery for UsersDelivery {
     ) -> Result<Response, ApiError> {
         let user = self.usecase.login(payload).await?;
 
-        if let Some(_) = jar.get("session_id") {
+        if jar.get("session_id").is_some() {
             return Err(UseCaseError(SessionAlreadyExists));
         }
 
