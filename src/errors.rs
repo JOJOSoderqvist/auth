@@ -89,8 +89,6 @@ pub enum DBError {
     #[error("Session not found")]
     SessionNotFound,
 
-    #[error("Session user not found")]
-    SessionUserNotFound,
 
     #[error("Failed to parse UUID {0}")]
     FailedToParseUUID(#[from] uuid::Error),
@@ -100,7 +98,6 @@ impl DBError {
     fn status_code(&self) -> StatusCode {
         match self {
             DBError::SessionNotFound => StatusCode::NOT_FOUND,
-            DBError::SessionUserNotFound => StatusCode::NOT_FOUND,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
