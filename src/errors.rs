@@ -89,7 +89,6 @@ pub enum DBError {
     #[error("Session not found")]
     SessionNotFound,
 
-
     #[error("Failed to parse UUID {0}")]
     FailedToParseUUID(#[from] uuid::Error),
 }
