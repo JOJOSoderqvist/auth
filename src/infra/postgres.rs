@@ -1,5 +1,7 @@
 use crate::errors::DBInfraError;
-use crate::errors::DBInfraError::{FailedToAcquirePG, FailedToInitPGPool, FailedToPingPG};
+use crate::errors::DBInfraError::{
+    FailedToAcquirePG, FailedToInitPGPool, FailedToPingPG, FailedToRunMigrations,
+};
 use sqlx::postgres::PgPoolOptions;
 use sqlx::{Connection, Pool, Postgres};
 
@@ -17,6 +19,11 @@ impl PGPool {
 
         // TODO: check if ping is required
         Self::ping(&pool).await?;
+
+        sqlx::migrate!("./migrations")
+            .run(&pool)
+            .await
+            .map_err(FailedToRunMigrations)?;
 
         Ok(PGPool { pool })
     }

@@ -2,7 +2,7 @@ use crate::delivery_grpc::users_delivery::auth::{GetUserRequest, GetUserResponse
 use crate::errors::DBError;
 use async_trait::async_trait;
 use std::sync::Arc;
-use tonic::{Request, Response, Status, transport::Server};
+use tonic::{Request, Response, Status};
 use uuid::Uuid;
 
 pub mod auth {

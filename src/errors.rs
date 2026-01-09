@@ -26,6 +26,9 @@ pub enum DBInfraError {
 
     #[error("Failed to init redis pool {0}")]
     FailedToInitRedisPool(#[from] deadpool_redis::CreatePoolError),
+
+    #[error("Failed to run migrations")]
+    FailedToRunMigrations(#[from] sqlx::migrate::MigrateError),
 }
 
 #[derive(Error, Debug)]

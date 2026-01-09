@@ -27,16 +27,16 @@ impl AppConfig {
         let port = env::var(APP_PORT).expect("Port is not set");
         let grpc_addr = env::var(GRPC_ADDR).expect("Grpc addr is not set");
 
-        let grpc_addr = grpc_addr.parse::<SocketAddr>()
+        let grpc_addr = grpc_addr
+            .parse::<SocketAddr>()
             .expect("failed to parse grpc server addr");
-
 
         Self {
             postgres_conn_string,
             redis_conn_string,
             host,
             port,
-            grpc_addr
+            grpc_addr,
         }
     }
 }

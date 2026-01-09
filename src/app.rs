@@ -1,5 +1,6 @@
-use std::net::SocketAddr;
 use crate::config::AppConfig;
+use crate::delivery_grpc::users_delivery::UsersDeliveryGRPC;
+use crate::delivery_grpc::users_delivery::auth::users_provider_server::UsersProviderServer;
 use crate::delivery_http::dto::{LoginRequest, RegisterRequest, UpdateUserRequest};
 use crate::delivery_http::users_delivery::{IUsersRepo, UsersDelivery};
 use crate::errors::ApiError;
@@ -15,13 +16,12 @@ use axum::response::Response;
 use axum::routing::{delete, get, post, put};
 use axum::{Json, Router};
 use axum_extra::extract::CookieJar;
+use std::net::SocketAddr;
 use std::process;
 use std::sync::Arc;
 use tonic::transport::Server;
 use tonic::transport::server::Router as grpc_router;
 use uuid::Uuid;
-use crate::delivery_grpc::users_delivery::auth::users_provider_server::{UsersProvider, UsersProviderServer};
-use crate::delivery_grpc::users_delivery::UsersDeliveryGRPC;
 
 #[async_trait]
 pub trait IUsersDelivery: Send + Sync {
@@ -46,7 +46,7 @@ pub trait IUsersDelivery: Send + Sync {
 }
 
 pub struct AuthApp {
-    pub http_delivery: Arc<dyn IUsersDelivery>
+    pub http_delivery: Arc<dyn IUsersDelivery>,
 }
 
 impl AuthApp {
@@ -86,10 +86,14 @@ impl AuthApp {
 
         let grpc_auth = UsersDeliveryGRPC::new(sessions_for_grpc);
 
-        let grpc_router = Server::builder()
-            .add_service(UsersProviderServer::new(grpc_auth));
+        let grpc_router = Server::builder().add_service(UsersProviderServer::new(grpc_auth));
 
-        (AuthApp { http_delivery: delivery}, grpc_router)
+        (
+            AuthApp {
+                http_delivery: delivery,
+            },
+            grpc_router,
+        )
     }
 }
 
@@ -104,7 +108,13 @@ pub fn init_router(state: Arc<AuthApp>) -> Router {
         .with_state(state)
 }
 
-pub async fn serve(host: String, port: String, router: Router, grpc_addr: SocketAddr, grpc_router: grpc_router) {
+pub async fn serve(
+    host: String,
+    port: String,
+    router: Router,
+    grpc_addr: SocketAddr,
+    grpc_router: grpc_router,
+) {
     let addr = format!("{}:{}", host, port);
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
 
