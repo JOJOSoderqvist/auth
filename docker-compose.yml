@@ -60,6 +60,9 @@ services:
 networks:
   auth-network:
     driver: bridge
+  public-gateway-network:
+    name: public-gateway-network
+    external: true
 
 volumes:
   users_data:
