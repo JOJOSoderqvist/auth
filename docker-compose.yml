@@ -2,7 +2,7 @@ services:
   users_db:
     image: postgres:17.5
     ports:
-      - "5435:5432"
+      - "5440:5432"
     env_file:
       - .env
     environment:
@@ -54,8 +54,8 @@ services:
       session_store:
         condition: service_started
     ports:
-      - "3000:3000"
-      - "3001:3001"
+      - "8010:8010"
+      - "8011:8011"
 
 networks:
   auth-network:
