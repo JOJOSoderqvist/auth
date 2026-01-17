@@ -63,7 +63,7 @@ impl IUsersRepo for UsersRepo {
 #[async_trait]
 impl IUsersRepository for UsersRepo {
     async fn create_user(&self, user: User) -> Result<User, DBError> {
-        let user = sqlx::query_as(
+        let res = sqlx::query_as(
             r#"insert into users (id, email, username, password_hash)
             values ($1, $2, $3, $4)
             returning id, email, username, password_hash, created_at, updated_at;"#,
@@ -73,10 +73,23 @@ impl IUsersRepository for UsersRepo {
         .bind(user.username)
         .bind(user.password_hash)
         .fetch_one(&self.repo.pool)
-        .await
-        .map_err(FailedToCreateUser)?;
+        .await;
 
-        Ok(user)
+        match res {
+            Ok(user) => Ok(user),
+            Err(e) => {
+                if let Some(db_err) = e.as_database_error() {
+                    // Unique violation check
+                    if let Some(code) = db_err.code() {
+                        if code == "23505" {
+                            return Err(DBError::UserAlreadyExists);
+                        }
+                    }
+                }
+
+                Err(FailedToCreateUser(e))
+            }
+        }
     }
 
     async fn login(&self, email: String) -> Result<Option<User>, DBError> {

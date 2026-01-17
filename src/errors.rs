@@ -91,12 +91,16 @@ pub enum DBError {
 
     #[error("Failed to parse UUID {0}")]
     FailedToParseUUID(#[from] uuid::Error),
+
+    #[error("User with this email or username already exists")]
+    UserAlreadyExists,
 }
 
 impl DBError {
     fn status_code(&self) -> StatusCode {
         match self {
             DBError::SessionNotFound => StatusCode::NOT_FOUND,
+            DBError::UserAlreadyExists => StatusCode::CONFLICT,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
