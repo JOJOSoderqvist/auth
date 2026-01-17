@@ -7,9 +7,9 @@ use argon2::password_hash::SaltString;
 use argon2::password_hash::rand_core::OsRng;
 use argon2::{Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
 use async_trait::async_trait;
+use mockall::predicate::*;
 use std::sync::Arc;
 use uuid::Uuid;
-use mockall::predicate::*;
 
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
@@ -152,11 +152,13 @@ mod tests {
     async fn test_login_success() {
         let mut mock_repo = MockIUsersRepository::new();
 
-
         let password = "mysecretpassword";
         let salt = SaltString::generate(&mut OsRng);
         let argon2 = Argon2::default();
-        let valid_hash = argon2.hash_password(password.as_bytes(), &salt).unwrap().to_string();
+        let valid_hash = argon2
+            .hash_password(password.as_bytes(), &salt)
+            .unwrap()
+            .to_string();
 
         let mut db_user = mock_user();
         db_user.email = "login@test.com".to_string();
@@ -215,10 +217,7 @@ mod tests {
     async fn test_login_user_not_found() {
         let mut mock_repo = MockIUsersRepository::new();
 
-        mock_repo
-            .expect_login()
-            .times(1)
-            .returning(|_| Ok(None));
+        mock_repo.expect_login().times(1).returning(|_| Ok(None));
 
         let usecase = UserUsecase::new(Arc::new(mock_repo));
 

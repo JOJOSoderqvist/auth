@@ -12,6 +12,8 @@ use crate::repo::users_repo::UsersRepo;
 use crate::usecase::users_usecase::{IUsersRepository, UserUsecase};
 use async_trait::async_trait;
 use axum::extract::Path;
+use axum::http::header::{AUTHORIZATION, CONTENT_TYPE, COOKIE};
+use axum::http::{HeaderValue, Method};
 use axum::response::Response;
 use axum::routing::{delete, get, post, put};
 use axum::{Json, Router};
@@ -21,6 +23,7 @@ use std::process;
 use std::sync::Arc;
 use tonic::transport::Server;
 use tonic::transport::server::Router as grpc_router;
+use tower_http::cors::CorsLayer;
 use uuid::Uuid;
 
 #[async_trait]
@@ -98,6 +101,24 @@ impl AuthApp {
 }
 
 pub fn init_router(state: Arc<AuthApp>) -> Router {
+    let origins = [
+        "https://writehub.space".parse::<HeaderValue>().unwrap(),
+        "https://www.writehub.space".parse::<HeaderValue>().unwrap(),
+        "http://localhost:3000".parse::<HeaderValue>().unwrap(),
+    ];
+
+    let cors = CorsLayer::new()
+        .allow_origin(origins)
+        .allow_methods([
+            Method::GET,
+            Method::POST,
+            Method::PUT,
+            Method::DELETE,
+            Method::OPTIONS,
+        ])
+        .allow_headers([CONTENT_TYPE, AUTHORIZATION, COOKIE])
+        .allow_credentials(true);
+
     Router::new()
         .route("/api/v1/register", post(create_user))
         .route("/api/v1/users/{id}", get(get_user))
@@ -106,6 +127,7 @@ pub fn init_router(state: Arc<AuthApp>) -> Router {
         .route("/api/v1/login", post(login))
         .route("/api/v1/logout", post(logout))
         .with_state(state)
+        .layer(cors)
 }
 
 pub async fn serve(

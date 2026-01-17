@@ -21,8 +21,8 @@ WORKDIR /app
 # Copy the compiled executable from the builder stage
 COPY --from=builder /app/target/release/auth .
 
-EXPOSE 8010
-EXPOSE 8011
+EXPOSE 3000
+EXPOSE 3001
 
 # Set the entrypoint for your application
 CMD ["./auth"]

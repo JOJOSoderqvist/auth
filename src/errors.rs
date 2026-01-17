@@ -42,8 +42,6 @@ pub enum UsecaseError {
     UserNotFoundError,
     #[error("Invalid credentials")]
     InvalidCreds,
-    #[error("Session already exists")]
-    SessionAlreadyExists,
 }
 
 impl UsecaseError {
@@ -52,7 +50,7 @@ impl UsecaseError {
             UsecaseError::DBDerivedError(err) => err.status_code(),
             UsecaseError::HashPasswordError(_) => StatusCode::INTERNAL_SERVER_ERROR,
             UsecaseError::UserNotFoundError => StatusCode::NOT_FOUND,
-            UsecaseError::InvalidCreds | UsecaseError::SessionAlreadyExists => StatusCode::CONFLICT,
+            UsecaseError::InvalidCreds => StatusCode::CONFLICT,
         }
     }
 }

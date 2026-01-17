@@ -54,8 +54,8 @@ services:
       session_store:
         condition: service_started
     ports:
-      - "8010:8010"
-      - "8011:8011"
+      - "8010:3000"
+      - "8011:3001"
 
 networks:
   auth-network:

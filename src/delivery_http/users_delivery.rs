@@ -14,7 +14,6 @@ use axum::response::{IntoResponse, Response};
 use axum_extra::extract::cookie::{Cookie, CookieJar};
 
 use crate::errors::DBError::FailedToParseUUID;
-use crate::errors::UsecaseError::SessionAlreadyExists;
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -72,7 +71,7 @@ impl UsersDelivery {
         Cookie::build(("session_id", session_id.to_string()))
             .path("/")
             .http_only(true)
-            .secure(false) // TODO: change to true in prod
+            .secure(true)
             .build()
     }
 }
@@ -138,10 +137,6 @@ impl IUsersDelivery for UsersDelivery {
         Json(payload): Json<LoginRequest>,
     ) -> Result<Response, ApiError> {
         let user = self.usecase.login(payload).await?;
-
-        if jar.get("session_id").is_some() {
-            return Err(UseCaseError(SessionAlreadyExists));
-        }
 
         let session_id = self.session_store.create_session(user.id).await?;
 
