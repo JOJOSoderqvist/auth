@@ -47,6 +47,7 @@ services:
       - RUST_LOG=info
     networks:
       - auth-network
+      - public-gateway-network
     restart: unless-stopped
     depends_on:
       users_db:
