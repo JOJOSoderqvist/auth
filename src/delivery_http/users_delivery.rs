@@ -11,7 +11,7 @@ use axum::extract::Path;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 
-use axum_extra::extract::cookie::{Cookie, CookieJar};
+use axum_extra::extract::cookie::{Cookie, CookieJar, SameSite};
 
 use crate::errors::DBError::FailedToParseUUID;
 use std::sync::Arc;
@@ -76,6 +76,7 @@ impl UsersDelivery {
             .path("/")
             .http_only(true)
             .secure(false)
+            .same_site(SameSite::None)
             .build()
     }
 }
