@@ -3,6 +3,7 @@ use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use serde_json::json;
 use thiserror::Error;
+use validator::ValidationErrors;
 
 #[derive(Error, Debug)]
 pub enum ApiError {
@@ -11,6 +12,9 @@ pub enum ApiError {
 
     #[error("Usecase error {0}")]
     UseCaseError(#[from] UsecaseError),
+
+    #[error("Validation error {0}")]
+    ValidationError(#[from] ValidationErrors),
 }
 
 #[derive(Error, Debug)]
@@ -108,8 +112,17 @@ impl IntoResponse for ApiError {
     fn into_response(self) -> Response {
         let (code, err_body) = match self {
             ApiError::DataBaseError(err) => (err.status_code(), err.to_string()),
-
             ApiError::UseCaseError(err) => (err.status_code(), err.to_string()),
+            ApiError::ValidationError(errors) => {
+                return (
+                    StatusCode::BAD_REQUEST,
+                    Json(json!({
+                        "error": "Validation failed",
+                        "details": errors
+                    })),
+                )
+                    .into_response();
+            }
         };
 
         let json_body = Json(json!({

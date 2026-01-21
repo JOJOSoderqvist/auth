@@ -1,13 +1,17 @@
 use crate::model::User;
 use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
+use validator::Validate;
 
 const USER_NOT_FOUND_MSG: &str = "user not found";
 
-#[derive(Clone, Deserialize)]
+#[derive(Clone, Deserialize, Validate)]
 pub struct RegisterRequest {
+    #[validate(email(message = "Invalid email format"))]
     pub email: String,
+    #[validate(length(min = 1, message = "Username should not be empty"))]
     pub username: String,
+    #[validate(length(min = 6, message = "Password must be at least 6 characters"))]
     pub password: String,
 }
 

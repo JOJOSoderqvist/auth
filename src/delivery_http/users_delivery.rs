@@ -18,6 +18,7 @@ use crate::errors::DBError::FailedToParseUUID;
 use std::sync::Arc;
 use time::Duration;
 use uuid::Uuid;
+use validator::Validate;
 
 #[async_trait]
 pub trait IUsersRepo: Send + Sync {
@@ -90,6 +91,10 @@ impl IUsersDelivery for UsersDelivery {
         jar: CookieJar,
         Json(payload): Json<RegisterRequest>,
     ) -> Result<Response, ApiError> {
+        if let Err(e) = payload.validate() {
+            return Ok(ApiError::ValidationError(e).into_response());
+        }
+
         let user = self
             .usecase
             .create_user(payload)
