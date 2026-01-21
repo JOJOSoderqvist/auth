@@ -1,6 +1,6 @@
 use crate::config::AppConfig;
-use crate::delivery_grpc::users_delivery::UsersDeliveryGRPC;
 use crate::delivery_grpc::users_delivery::auth::users_provider_server::UsersProviderServer;
+use crate::delivery_grpc::users_delivery::UsersDeliveryGRPC;
 use crate::delivery_http::dto::{LoginRequest, RegisterRequest, UpdateUserRequest};
 use crate::delivery_http::users_delivery::{IUsersRepo, UsersDelivery};
 use crate::errors::ApiError;
@@ -12,8 +12,8 @@ use crate::repo::users_repo::UsersRepo;
 use crate::usecase::users_usecase::{IUsersRepository, UserUsecase};
 use async_trait::async_trait;
 use axum::extract::Path;
-use axum::http::header::{AUTHORIZATION, CONTENT_TYPE, COOKIE};
-use axum::http::{HeaderValue, Method};
+use axum::http::header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE};
+use axum::http::{HeaderName, HeaderValue, Method};
 use axum::response::Response;
 use axum::routing::{delete, get, post, put};
 use axum::{Json, Router};
@@ -21,8 +21,8 @@ use axum_extra::extract::CookieJar;
 use std::net::SocketAddr;
 use std::process;
 use std::sync::Arc;
-use tonic::transport::Server;
 use tonic::transport::server::Router as grpc_router;
+use tonic::transport::Server;
 use tower_http::cors::CorsLayer;
 use uuid::Uuid;
 
@@ -46,6 +46,7 @@ pub trait IUsersDelivery: Send + Sync {
         payload: Json<LoginRequest>,
     ) -> Result<Response, ApiError>;
     async fn logout(&self, jar: CookieJar) -> Result<Response, ApiError>;
+    async fn get_user_from_cookie(&self, jar: CookieJar) -> Result<Response, ApiError>;
 }
 
 pub struct AuthApp {
@@ -107,6 +108,8 @@ pub fn init_router(state: Arc<AuthApp>) -> Router {
         "http://localhost:3000".parse::<HeaderValue>().unwrap(),
     ];
 
+    let x_requested_with = "x-requested-with".parse::<HeaderName>().unwrap();
+
     let cors = CorsLayer::new()
         .allow_origin(origins)
         .allow_methods([
@@ -116,7 +119,7 @@ pub fn init_router(state: Arc<AuthApp>) -> Router {
             Method::DELETE,
             Method::OPTIONS,
         ])
-        .allow_headers([CONTENT_TYPE, AUTHORIZATION, COOKIE])
+        .allow_headers([CONTENT_TYPE, AUTHORIZATION, ACCEPT, x_requested_with])
         .allow_credentials(true);
 
     Router::new()
