@@ -13,10 +13,11 @@ use axum::response::{IntoResponse, Response};
 
 use axum_extra::extract::cookie::{Cookie, CookieJar, SameSite};
 
+use crate::delivery_grpc::users_delivery::IUserIDGetter;
 use crate::errors::DBError::FailedToParseUUID;
 use std::sync::Arc;
+use time::Duration;
 use uuid::Uuid;
-use crate::delivery_grpc::users_delivery::IUserIDGetter;
 
 #[async_trait]
 pub trait IUsersRepo: Send + Sync {
@@ -55,7 +56,7 @@ impl UsersDelivery {
             repo,
             usecase,
             session_store,
-            user_id_getter
+            user_id_getter,
         }
     }
 
@@ -77,6 +78,7 @@ impl UsersDelivery {
             .http_only(true)
             .secure(true)
             .same_site(SameSite::None)
+            .max_age(Duration::days(1))
             .build()
     }
 }
@@ -182,8 +184,6 @@ impl IUsersDelivery for UsersDelivery {
             }
         }
 
-        Ok((
-            StatusCode::UNAUTHORIZED,
-        ).into_response())
+        Ok((StatusCode::UNAUTHORIZED,).into_response())
     }
 }

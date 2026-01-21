@@ -1,10 +1,12 @@
 use crate::config::AppConfig;
-use crate::delivery_grpc::users_delivery::auth::users_provider_server::UsersProviderServer;
 use crate::delivery_grpc::users_delivery::UsersDeliveryGRPC;
+use crate::delivery_grpc::users_delivery::auth::users_provider_server::UsersProviderServer;
 use crate::delivery_http::dto::{LoginRequest, RegisterRequest, UpdateUserRequest};
 use crate::delivery_http::users_delivery::{IUsersRepo, UsersDelivery};
 use crate::errors::ApiError;
-use crate::handlers::{create_user, delete_user, get_user, get_user_from_cookie, login, logout, update_user};
+use crate::handlers::{
+    create_user, delete_user, get_user, get_user_from_cookie, login, logout, update_user,
+};
 use crate::infra::postgres::PGPool;
 use crate::infra::redis::RedisPool;
 use crate::repo::sessions::SessionsRepo;
@@ -21,8 +23,8 @@ use axum_extra::extract::CookieJar;
 use std::net::SocketAddr;
 use std::process;
 use std::sync::Arc;
-use tonic::transport::server::Router as grpc_router;
 use tonic::transport::Server;
+use tonic::transport::server::Router as grpc_router;
 use tower_http::cors::CorsLayer;
 use uuid::Uuid;
 
@@ -107,23 +109,18 @@ pub fn init_router(state: Arc<AuthApp>) -> Router {
     let origins = [
         "http://localhost:3000".parse::<HeaderValue>().unwrap(),
         "http://83.166.253.130:3000".parse::<HeaderValue>().unwrap(),
-
         "http://localhost:8003".parse::<HeaderValue>().unwrap(),
         "http://83.166.253.130:8003".parse::<HeaderValue>().unwrap(),
         "http://127.0.0.1:8003".parse::<HeaderValue>().unwrap(),
-
         "http://localhost:8088".parse::<HeaderValue>().unwrap(),
         "http://83.166.253.130:8088".parse::<HeaderValue>().unwrap(),
         "http://127.0.0.1:8088".parse::<HeaderValue>().unwrap(),
-
         "http://localhost:8089".parse::<HeaderValue>().unwrap(),
         "http://83.166.253.130:8089".parse::<HeaderValue>().unwrap(),
         "http://127.0.0.1:8089".parse::<HeaderValue>().unwrap(),
-
         "http://212.233.75.64".parse::<HeaderValue>().unwrap(),
         "http://212.233.75.64:80".parse::<HeaderValue>().unwrap(),
         "http://212.233.75.64:3000".parse::<HeaderValue>().unwrap(),
-
         "http://writehub.space".parse::<HeaderValue>().unwrap(),
         "http://writehub.space:80".parse::<HeaderValue>().unwrap(),
         "https://writehub.space".parse::<HeaderValue>().unwrap(),
@@ -141,7 +138,13 @@ pub fn init_router(state: Arc<AuthApp>) -> Router {
             Method::DELETE,
             Method::OPTIONS,
         ])
-        .allow_headers([CONTENT_TYPE, AUTHORIZATION, ACCEPT, ORIGIN, x_requested_with])
+        .allow_headers([
+            CONTENT_TYPE,
+            AUTHORIZATION,
+            ACCEPT,
+            ORIGIN,
+            x_requested_with,
+        ])
         .allow_credentials(true);
 
     Router::new()
