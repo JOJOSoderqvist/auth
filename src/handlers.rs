@@ -52,3 +52,10 @@ pub async fn logout(
 ) -> Result<impl IntoResponse, ApiError> {
     app.http_delivery.logout(jar).await
 }
+
+pub async fn get_user_from_cookie(
+    State(app): State<Arc<AuthApp>>,
+    jar: CookieJar,
+) -> Result<impl IntoResponse, ApiError> {
+    app.http_delivery.get_user_from_cookie(jar).await
+}

@@ -16,6 +16,7 @@ use axum_extra::extract::cookie::{Cookie, CookieJar};
 use crate::errors::DBError::FailedToParseUUID;
 use std::sync::Arc;
 use uuid::Uuid;
+use crate::delivery_grpc::users_delivery::IUserIDGetter;
 
 #[async_trait]
 pub trait IUsersRepo: Send + Sync {
@@ -40,6 +41,7 @@ pub struct UsersDelivery {
     repo: Arc<dyn IUsersRepo>,
     usecase: Arc<dyn IUsersCreatorUsecase>,
     session_store: Arc<dyn ISessionStore>,
+    user_id_getter: Arc<dyn IUserIDGetter>,
 }
 
 impl UsersDelivery {
@@ -47,11 +49,13 @@ impl UsersDelivery {
         repo: Arc<dyn IUsersRepo>,
         usecase: Arc<dyn IUsersCreatorUsecase>,
         session_store: Arc<dyn ISessionStore>,
+        user_id_getter: Arc<dyn IUserIDGetter>,
     ) -> Self {
         UsersDelivery {
             repo,
             usecase,
             session_store,
+            user_id_getter
         }
     }
 
@@ -71,7 +75,7 @@ impl UsersDelivery {
         Cookie::build(("session_id", session_id.to_string()))
             .path("/")
             .http_only(true)
-            .secure(true)
+            .secure(false)
             .build()
     }
 }
@@ -150,7 +154,6 @@ impl IUsersDelivery for UsersDelivery {
             .into_response())
     }
 
-    // TODO: check if removal of empty cookie is ok
     async fn logout(&self, jar: CookieJar) -> Result<Response, ApiError> {
         if let Some(cookie) = jar.get("session_id") {
             let session_id = cookie.value().to_string();
@@ -162,5 +165,24 @@ impl IUsersDelivery for UsersDelivery {
 
         let removal_cookie = Cookie::build("session_id").path("/").build();
         Ok((StatusCode::OK, jar.remove(removal_cookie)).into_response())
+    }
+
+    async fn get_user_from_cookie(&self, jar: CookieJar) -> Result<Response, ApiError> {
+        if let Some(cookie) = jar.get("session_id") {
+            let session_id = cookie.value().to_string();
+
+            let session_id = Uuid::parse_str(session_id.as_str()).map_err(FailedToParseUUID)?;
+
+            if let Some(user_id) = self.user_id_getter.get_user(session_id).await? {
+                if let Some(user) = self.repo.get_user(user_id).await? {
+                    return Self::respond_with_user(Some(user));
+                }
+                return Self::respond_with_user(None);
+            }
+        }
+
+        Ok((
+            StatusCode::UNAUTHORIZED,
+        ).into_response())
     }
 }

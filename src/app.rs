@@ -4,7 +4,7 @@ use crate::delivery_grpc::users_delivery::UsersDeliveryGRPC;
 use crate::delivery_http::dto::{LoginRequest, RegisterRequest, UpdateUserRequest};
 use crate::delivery_http::users_delivery::{IUsersRepo, UsersDelivery};
 use crate::errors::ApiError;
-use crate::handlers::{create_user, delete_user, get_user, login, logout, update_user};
+use crate::handlers::{create_user, delete_user, get_user, get_user_from_cookie, login, logout, update_user};
 use crate::infra::postgres::PGPool;
 use crate::infra::redis::RedisPool;
 use crate::repo::sessions::SessionsRepo;
@@ -74,6 +74,7 @@ impl AuthApp {
         let session_repo = Arc::new(SessionsRepo::new(redis_pool));
 
         let sessions_for_grpc = session_repo.clone();
+        let session_for_id_getter = session_repo.clone();
 
         let repo = Arc::new(UsersRepo::new(pool));
 
@@ -86,6 +87,7 @@ impl AuthApp {
             repo_for_delivery,
             Arc::new(usecase),
             session_repo,
+            session_for_id_getter,
         ));
 
         let grpc_auth = UsersDeliveryGRPC::new(sessions_for_grpc);
@@ -127,6 +129,7 @@ pub fn init_router(state: Arc<AuthApp>) -> Router {
         .route("/api/v1/users/{id}", get(get_user))
         .route("/api/v1/users/{id}", put(update_user))
         .route("/api/v1/users/{id}", delete(delete_user))
+        .route("/api/v1/users/profile", get(get_user_from_cookie))
         .route("/api/v1/login", post(login))
         .route("/api/v1/logout", post(logout))
         .with_state(state)
