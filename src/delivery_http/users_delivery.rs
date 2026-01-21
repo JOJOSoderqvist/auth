@@ -75,7 +75,7 @@ impl UsersDelivery {
         Cookie::build(("session_id", session_id.to_string()))
             .path("/")
             .http_only(true)
-            .secure(false)
+            .secure(true)
             .same_site(SameSite::None)
             .build()
     }
