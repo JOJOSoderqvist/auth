@@ -12,7 +12,7 @@ use crate::repo::users_repo::UsersRepo;
 use crate::usecase::users_usecase::{IUsersRepository, UserUsecase};
 use async_trait::async_trait;
 use axum::extract::Path;
-use axum::http::header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE};
+use axum::http::header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE, ORIGIN};
 use axum::http::{HeaderName, HeaderValue, Method};
 use axum::response::Response;
 use axum::routing::{delete, get, post, put};
@@ -105,9 +105,29 @@ impl AuthApp {
 
 pub fn init_router(state: Arc<AuthApp>) -> Router {
     let origins = [
-        "https://writehub.space".parse::<HeaderValue>().unwrap(),
-        "https://www.writehub.space".parse::<HeaderValue>().unwrap(),
         "http://localhost:3000".parse::<HeaderValue>().unwrap(),
+        "http://83.166.253.130:3000".parse::<HeaderValue>().unwrap(),
+
+        "http://localhost:8003".parse::<HeaderValue>().unwrap(),
+        "http://83.166.253.130:8003".parse::<HeaderValue>().unwrap(),
+        "http://127.0.0.1:8003".parse::<HeaderValue>().unwrap(),
+
+        "http://localhost:8088".parse::<HeaderValue>().unwrap(),
+        "http://83.166.253.130:8088".parse::<HeaderValue>().unwrap(),
+        "http://127.0.0.1:8088".parse::<HeaderValue>().unwrap(),
+
+        "http://localhost:8089".parse::<HeaderValue>().unwrap(),
+        "http://83.166.253.130:8089".parse::<HeaderValue>().unwrap(),
+        "http://127.0.0.1:8089".parse::<HeaderValue>().unwrap(),
+
+        "http://212.233.75.64".parse::<HeaderValue>().unwrap(),
+        "http://212.233.75.64:80".parse::<HeaderValue>().unwrap(),
+        "http://212.233.75.64:3000".parse::<HeaderValue>().unwrap(),
+
+        "http://writehub.space".parse::<HeaderValue>().unwrap(),
+        "http://writehub.space:80".parse::<HeaderValue>().unwrap(),
+        "https://writehub.space".parse::<HeaderValue>().unwrap(),
+        "https://writehub.space:443".parse::<HeaderValue>().unwrap(),
     ];
 
     let x_requested_with = "x-requested-with".parse::<HeaderName>().unwrap();
@@ -121,7 +141,7 @@ pub fn init_router(state: Arc<AuthApp>) -> Router {
             Method::DELETE,
             Method::OPTIONS,
         ])
-        .allow_headers([CONTENT_TYPE, AUTHORIZATION, ACCEPT, x_requested_with])
+        .allow_headers([CONTENT_TYPE, AUTHORIZATION, ACCEPT, ORIGIN, x_requested_with])
         .allow_credentials(true);
 
     Router::new()
